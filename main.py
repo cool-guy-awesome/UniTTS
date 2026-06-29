@@ -1,6 +1,7 @@
 import discord
 import dotenv
 import os
+import re
 from collections import deque
 from gtts import gTTS
 
@@ -35,6 +36,10 @@ async def on_message(msg):
 
     if msg.content.startswith("$"):
         message = msg.content[1:].strip()
+        for mention in msg.mentions:
+            name = mention.nick or mention.global_name
+            message = re.sub(rf"<@!?{mention.id}>", name, message)
+        message = re.sub(r"<t:\d+:\w+>", "", message)
         if vc.is_playing():
             queue.append(message)
         else:
