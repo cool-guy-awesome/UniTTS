@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import random
+import gtts # type: ignore
 from collections import deque
 from gtts import gTTS # type: ignore
 from discord import app_commands
@@ -14,6 +15,10 @@ bot = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(bot)
 vc = None
 queue = deque()
+language_choices = []
+langs = {"de":"German","en":"English","es":"Spanish","fi":"Finnish","fr":"French","hu":"Hungarian","id":"Indonesian","is":"Icelandic","it":"Italian","ja":"Japanese","ko":"Korean","lt":"Lithuanian","ne":"Nepali","nl":"Dutch","no":"Norwegian","pa":"Punjabi (Gurmukhi)","pl":"Polish","pt-PT":"Portuguese (Portugal)","ro":"Romanian","ru":"Russian","sv":"Swedish","tr":"Turkish","uk":"Ukrainian","vi":"Vietnamese","zh-CN":"Chinese (Simplified)"}
+for lang_code, lang_name in langs.items():
+    language_choices.append(app_commands.Choice(name=lang_name, value=lang_code))
 
 def read_data():
     return json.load(open("data.json", "rb"))
@@ -23,7 +28,7 @@ def write_data(data):
 
 def generate_tts(message, voice, filename):
     if voice["type"] == "gtts":
-        tts = gTTS(message)
+        tts = gTTS(message, lang=voice["language"])
         tts.save(filename)
     elif voice["type"] == "sam":
         pitch = str(voice["pitch"])
@@ -90,6 +95,7 @@ async def on_message(msg):
             "always_speak": False,
             "voice": {
                 "type": "gtts",
+                "language": "en",
                 "pitch": 64,
                 "speed": 72,
                 "mouth": 128,
@@ -100,6 +106,8 @@ async def on_message(msg):
 
     always_speak = data["user_settings"][str(msg.author.id)]["always_speak"]
     if msg.content.startswith("$") or always_speak:
+        if len(msg.content) > 300:
+            await msg.channel.send(f"<@{msg.author.id}> Your message is too long! (Max 300 Characters)")
         if vc.is_playing():
             queue.append(msg)
         else:
@@ -126,19 +134,24 @@ async def ping(interaction: discord.Interaction):
 @app_commands.describe(
     always_speak="Always speak when you send a message",
     tts="Text To Speech system",
+    language="Google TTS Voice Language (optional)",
     pitch="SAM Voice Pitch (optional)",
     speed="SAM Voice Speed (optional)",
     mouth="SAM Voice Mouth (optional)",
     throat="SAM Voice Throat (optional)"
 )
-@app_commands.choices(tts=[
-    app_commands.Choice(name="Google TTS", value="gtts"),
-    app_commands.Choice(name="SAM", value="sam")
-])
+@app_commands.choices(
+    tts=[
+        app_commands.Choice(name="Google TTS", value="gtts"),
+        app_commands.Choice(name="SAM", value="sam")
+    ],
+    language=language_choices
+)
 async def set_voice(
     interaction: discord.Interaction,
     always_speak: bool,
     tts: app_commands.Choice[str],
+    language: app_commands.Choice[str] = "en",
     pitch: int = 64,
     speed: int = 72,
     mouth: int = 128,
@@ -149,6 +162,7 @@ async def set_voice(
         "always_speak": always_speak,
         "voice": {
             "type": tts.value,
+            "language": language.value if language != "en" else "en",
             "pitch": pitch,
             "speed": speed,
             "mouth": mouth,
