@@ -128,17 +128,17 @@ async def on_message(msg):
 
 @tree.command(name="ping", description="Ping...")
 async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message(f"Pong! {round(bot.latency*1000)}")
+    await interaction.response.send_message(f"Pong! {round(bot.latency*1000)}ms")
 
 @tree.command(name="set-voice", description="Sets your voice settings")
 @app_commands.describe(
     always_speak="Always speak when you send a message",
     tts="Text To Speech system",
     language="Google TTS Voice Language (optional)",
-    pitch="SAM Voice Pitch (optional)",
-    speed="SAM Voice Speed (optional)",
-    mouth="SAM Voice Mouth (optional)",
-    throat="SAM Voice Throat (optional)"
+    pitch="SAM Voice Pitch (max 255) (optional)",
+    speed="SAM Voice Speed (max 255) (optional)",
+    mouth="SAM Voice Mouth (max 255) (optional)",
+    throat="SAM Voice Throat (max 255) (optional)"
 )
 @app_commands.choices(
     tts=[
