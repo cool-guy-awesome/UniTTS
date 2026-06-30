@@ -112,7 +112,9 @@ async def on_message(msg):
         write_data(data)
 
     always_speak = data["user_settings"][str(msg.author.id)]["always_speak"]
-    if msg.content.startswith("$") or always_speak:
+    if msg.content == "MI BOMBO":
+        vc.play(discord.FFmpegPCMAudio(source="mibombo.mp3"))
+    elif msg.content.startswith("$") or always_speak:
         if len(msg.content) > 500:
             await msg.channel.send(f"<@{msg.author.id}> Your message is too long! (Max 500 Characters)")
             return
@@ -134,11 +136,16 @@ async def on_message(msg):
             def after(error):
                 os.remove(filename)
                 _play_next()
-            vc.play(discord.FFmpegPCMAudio(source=filename), after=after)
-    elif msg.content == "MI BOMBO":
-        vc.play(discord.FFmpegPCMAudio(source="mibombo.mp3"))
+            if vc.is_playing(): # the fuck? this can happen sometimes, idk why.
+                vc.play(discord.FFmpegPCMAudio(source=filename), after=after)
+            else:
+                queue.append(msg)
 
 @tree.command(name="ping", description="Ping...")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message(f"Pong! {round(bot.latency*1000)}ms")
+
+@tree.command(name="skip-tts", description="Skip the current TTS.")
 async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"Pong! {round(bot.latency*1000)}ms")
 
