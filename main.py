@@ -136,7 +136,7 @@ async def on_message(msg):
             def after(error):
                 os.remove(filename)
                 _play_next()
-            if vc.is_playing(): # the fuck? this can happen sometimes, idk why.
+            if not vc.is_playing(): # the fuck? this can happen sometimes, idk why.
                 vc.play(discord.FFmpegPCMAudio(source=filename), after=after)
             else:
                 queue.append(msg)
