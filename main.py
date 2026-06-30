@@ -1,10 +1,5 @@
-import discord
+import discord, json, os, re, subprocess, random, sys
 import dotenv # type: ignore
-import json
-import os
-import re
-import subprocess
-import random
 from collections import deque
 from gtts import gTTS # type: ignore
 from discord import app_commands
@@ -12,6 +7,7 @@ from discord import app_commands
 dotenv.load_dotenv()
 bot = discord.Client(intents=discord.Intents.all())
 tree = app_commands.CommandTree(bot)
+voice_channel = None
 vc = None
 queue = deque()
 language_choices = []
@@ -80,7 +76,7 @@ def _play_next(error=None):
 
 @bot.event
 async def on_ready():
-    global vc
+    global vc, voice_channel
     #await tree.sync()
     print("UniTTS is online!")
     guild = bot.get_guild(1437258836896514212)
@@ -88,10 +84,14 @@ async def on_ready():
     vc = await voice_channel.connect()
 
 @bot.event
+async def on_error(event, *args, **kwargs):
+    exc_type, exc_value, _ = sys.exc_info()
+    await voice_channel.send(f"<@932666698438418522> yo twin, {exc_type.__name__}: {exc_value}\nalso heres a burger", file=discord.File("burger.png"))
+
+@bot.event
 async def on_message(msg):
     if msg.author.bot or msg.channel.id != 1437271857140076606 or not vc:
         return
-
     data = read_data()
     if str(msg.author.id) not in data["user_settings"]:
         data["user_settings"][str(msg.author.id)] = {
@@ -179,6 +179,5 @@ async def set_voice(
     }
     write_data(data)
     await interaction.response.send_message("Updated settings!", ephemeral=True)
-
 
 bot.run(os.getenv("BOT_TOKEN"))
