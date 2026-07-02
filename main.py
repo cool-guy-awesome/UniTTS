@@ -222,12 +222,12 @@ async def set_voice(
                 pitch = 64
             case "ms-sam":
                 pitch = 100
-    if pitch == 255:
+    if speed == 255:
         match tts.value:
             case "sam":
-                pitch = 72
+                speed = 72
             case "ms-sam":
-                pitch = 150
+                speed = 150
     data = read_data()
     data["user_settings"][str(interaction.user.id)] = {
         "always_speak": always_speak,
