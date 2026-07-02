@@ -156,12 +156,12 @@ async def on_message(msg):
             message = msg.content[1:].strip() if msg.content.startswith("$") else msg.content.strip()
             if message.startswith("https://"): return
             for mention in msg.mentions:
-                name = mention.nick or mention.global_name
+                name = mention.nick or mention.global_name or mention.name
                 message = re.sub(rf"<@!?{mention.id}>", name, message)
             message = re.sub(r"<t:\d+:\w+>", "", message)
             message = re.sub(r"<:\w+:\d+>", "", message)
             message = message.encode("ascii", "ignore").decode("ascii")
-            if not message: return
+            if not message or not any(c.isalpha() for c in message): return
             generate_tts(message, voice, filename)
             def after(error):
                 os.remove(filename)
