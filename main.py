@@ -95,7 +95,7 @@ async def on_app_command_error(interaction: discord.Interaction, error: discord.
 @bot.event
 async def on_message(msg):
     print(f"[on_message] channel={msg.channel.id} content={msg.content!r} vc={vc}")
-    if msg.author.bot or msg.channel.id != 1437271857140076606 or not vc:
+    if msg.author.bot or msg.channel.id != 1524790106278596912 or not vc:
         return
     data = read_data()
     if str(msg.author.id) not in data["user_settings"]:
