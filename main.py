@@ -54,12 +54,12 @@ def _play_next(error=None):
 async def on_ready():
     global vc, voice_channel
     await tree.sync()
-    for f in os.listdir():
-        if f.endswith(".mp3") and f != "mibombo.mp3":
-            try:
-                os.remove(f)
-            except Exception:
-                pass
+    #for f in os.listdir():
+    #    if f.endswith(".mp3") and f != "mibombo.mp3" and f != "fish.mp3":
+    #        try:
+    #            os.remove(f)
+    #        except Exception:
+    #            pass
     print("StarTTS is online!")
     guild = bot.get_guild(1524790105657704539)
     voice_channel = guild.get_channel(1524790106278596912)
