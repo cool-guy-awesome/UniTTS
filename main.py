@@ -1,4 +1,4 @@
-import discord, json, os, re, sys, time, traceback
+import discord, json, os, re, sys, time, traceback, signal, asyncio
 import dotenv # type: ignore
 from collections import deque
 from discord import app_commands
@@ -25,6 +25,18 @@ def read_data():
 def write_data(data):
     return open("data.json", "w").write(json.dumps(data))
 
+def filter(message, msg):
+    for mention in msg.mentions:
+        name = mention.nick or mention.global_name
+        message = re.sub(rf"<@!?{mention.id}>", name, message)
+    message = re.sub(r"\[([^\]]+)\]\(https://\S+\)", r"\1", message)
+    message = re.sub(r"https://\S+", "", message)
+    message = re.sub(r"<t:\d+:\w+>", "", message)
+    message = re.sub(r"<:\w+:\d+>", "", message)
+    message = re.sub(r"<a:\w+:\d+>", "", message)
+    message = message.encode("ascii", "ignore").decode("ascii")
+    return message
+
 def _play_next(error=None):
     if error:
         print(f"Playback error: {error}")
@@ -34,12 +46,7 @@ def _play_next(error=None):
         voice = read_data()["user_settings"][str(msg.author.id)]["voice"]
         message = msg.content[1:].strip() if msg.content.startswith("$") else msg.content.strip()
         if message.startswith("https://"): return
-        for mention in msg.mentions:
-            name = mention.nick or mention.global_name
-            message = re.sub(rf"<@!?{mention.id}>", name, message)
-        message = re.sub(r"<t:\d+:\w+>", "", message)
-        message = re.sub(r"<:\w+:\d+>", "", message)
-        message = message.encode("ascii", "ignore").decode("ascii")
+        message = filter(message, msg)
         if not message: return
         generate_tts(message, voice, filename)
         def after(error):
@@ -49,6 +56,15 @@ def _play_next(error=None):
                 print(f"Failed to remove {filename}: {e}")
             _play_next()
         vc.play(discord.FFmpegPCMAudio(source=filename), after=after)
+
+async def shutdown():
+    await bot.close()
+
+def handle_stop_signal(sig, frame):
+    print("Shutting down...")
+    for vc in bot.voice_clients:
+        asyncio.create_task(vc.disconnect(force=True))
+    asyncio.get_event_loop().call_later(2, lambda: exit(0))
 
 @bot.event
 async def on_ready():
@@ -72,7 +88,7 @@ async def on_error(event, *args, **kwargs):
     if not "logs" in os.listdir():
         os.mkdir("logs")
     traceback.print_exc(file=open(f"logs/{filename}", "w"))
-    await voice_channel.send(f"<@932666698438418522> yo twin, {exc_type.__name__}: {exc_value}\ni printed a log in logs/{filename} if you want\nalso heres a burger", file=discord.File("burger.png"))
+    await voice_channel.send(f"<@932666698438418522> yo twin, {exc_type.__name__}: {exc_value}\ni printed a log in logs/{filename} if you want\nalso heres a burger", file=discord.File("assets/burger.png"))
 
 @tree.error
 async def on_app_command_error(interaction: discord.Interaction, error: discord.app_commands.AppCommandError):
@@ -84,19 +100,21 @@ async def on_app_command_error(interaction: discord.Interaction, error: discord.
         await voice_channel.send(
             f"<@932666698438418522> yo twin, {type(exc).__name__}: {exc}\n"
             f"i printed a log in logs/{filename} if you want\nalso heres a burger",
-            file=discord.File("burger.png"),
+            file=discord.File("assets/burger.png"),
         )
     else:
         await voice_channel.send(
             "i killed everyone\nalso heres a burger",
-            file=discord.File("burger.png"),
+            file=discord.File("assets/burger.png"),
         )
 
 @bot.event
 async def on_message(msg):
-    print(f"[on_message] channel={msg.channel.id} content={msg.content!r} vc={vc}")
+    global vc
     if msg.author.bot or msg.channel.id != 1524790106278596912 or not vc:
         return
+    if not msg.guild.voice_client:
+        vc = await voice_channel.connect()
     data = read_data()
     if str(msg.author.id) not in data["user_settings"]:
         data["user_settings"][str(msg.author.id)] = {
@@ -124,12 +142,7 @@ async def on_message(msg):
             voice = data["user_settings"][str(msg.author.id)]["voice"]
             message = msg.content[1:].strip() if msg.content.startswith("$") else msg.content.strip()
             if message.startswith("https://"): return
-            for mention in msg.mentions:
-                name = mention.nick or mention.global_name or mention.name
-                message = re.sub(rf"<@!?{mention.id}>", name, message)
-            message = re.sub(r"<t:\d+:\w+>", "", message)
-            message = re.sub(r"<:\w+:\d+>", "", message)
-            message = message.encode("ascii", "ignore").decode("ascii")
+            message = filter(message, msg)
             if not message or not any(c.isalpha() for c in message): return
             generate_tts(message, voice, filename)
             def after(error):
@@ -215,4 +228,6 @@ async def set_voice(
     write_data(data)
     await interaction.response.send_message("Updated settings!", ephemeral=True)
 
+signal.signal(signal.SIGTERM, handle_stop_signal)
+signal.signal(signal.SIGINT, handle_stop_signal)
 bot.run(os.getenv("BOT_TOKEN"))
