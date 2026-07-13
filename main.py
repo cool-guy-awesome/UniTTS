@@ -53,9 +53,11 @@ def _play_next(error=None):
 async def shutdown():
     await bot.close()
 
-def signal_handler():
+def handle_stop_signal(sig, frame):
     print("Shutting down...")
-    asyncio.create_task(shutdown())
+    for vc in bot.voice_clients:
+        asyncio.create_task(vc.disconnect(force=True))
+    asyncio.get_event_loop().call_later(2, lambda: exit(0))
 
 @bot.event
 async def on_ready():
@@ -224,6 +226,6 @@ async def set_voice(
     write_data(data)
     await interaction.response.send_message("Updated settings!", ephemeral=True)
 
-signal.signal(signal.SIGTERM, signal_handler)
-signal.signal(signal.SIGINT, signal_handler)
+signal.signal(signal.SIGTERM, handle_stop_signal)
+signal.signal(signal.SIGINT, handle_stop_signal)
 bot.run(os.getenv("BOT_TOKEN"))
