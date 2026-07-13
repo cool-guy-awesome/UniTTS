@@ -26,23 +26,15 @@ def write_data(data):
     return open("data.json", "w").write(json.dumps(data))
 
 def filter(message, msg):
-    print("ORIGINAL -", message)
     for mention in msg.mentions:
         name = mention.nick or mention.global_name
         message = re.sub(rf"<@!?{mention.id}>", name, message)
-    print("STEP 1 -", message)
     message = re.sub(r"\[([^\]]+)\]\(https://\S+\)", r"\1", message)
-    print("STEP 2 -", message)
     message = re.sub(r"https://\S+", "", message)
-    print("STEP 3 -", message)
     message = re.sub(r"<t:\d+:\w+>", "", message)
-    print("STEP 4 -", message)
     message = re.sub(r"<:\w+:\d+>", "", message)
-    print("STEP 5 -", message)
     message = re.sub(r"<a:\w+:\d+>", "", message)
-    print("STEP 6 -", message)
     message = message.encode("ascii", "ignore").decode("ascii")
-    print("STEP 7 -", message)
     return message
 
 def _play_next(error=None):
